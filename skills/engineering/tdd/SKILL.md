@@ -42,6 +42,16 @@ RIGHT (vertical):
 
 ## Workflow
 
+This skill orchestrates four delegated agents. The main thread owns the conversation with the user (interface design, prioritisation, sign-off); the agents own the work.
+
+| Phase | Agent | Model |
+|---|---|---|
+| Plan | `planner` | opus |
+| RED | `test-writer` | sonnet |
+| GREEN | `implementer` | sonnet |
+| Refactor | `refactorer` | sonnet |
+| Review (pre-commit) | `reviewer` | opus |
+
 ### 1. Planning
 
 When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
@@ -52,39 +62,38 @@ Before writing any code:
 - [ ] Confirm with user which behaviors to test (prioritize)
 - [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
 - [ ] Design interfaces for [testability](interface-design.md)
-- [ ] List the behaviors to test (not implementation steps)
-- [ ] Get user approval on the plan
+- [ ] Get user approval on the goal
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 
 **You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
 
+Once the goal is agreed, **delegate decomposition to the `planner` agent** (Agent tool, `subagent_type=planner`). Pass the goal, the relevant interfaces, and any ADR constraints. It returns a numbered list of vertical slices with the next slice flagged. Show the plan to the user; revise if needed.
+
 ### 2. Tracer Bullet
 
-Write ONE test that confirms ONE thing about the system:
+The first slice is the tracer bullet — the smallest end-to-end behaviour that proves the path works.
 
 ```
-RED:   Write test for first behavior → test fails
-GREEN: Write minimal code to pass → test passes
+RED:   delegate to test-writer  → one failing test
+GREEN: delegate to implementer  → minimum code to pass
 ```
-
-This is your tracer bullet - proves the path works end-to-end.
 
 ### 3. Incremental Loop
 
-For each remaining behavior:
+For each remaining slice:
 
 ```
-RED:   Write next test → fails
-GREEN: Minimal code to pass → passes
+RED:   delegate to test-writer  → one failing test
+GREEN: delegate to implementer  → minimum code to pass
 ```
 
 Rules:
 
-- One test at a time
-- Only enough code to pass current test
-- Don't anticipate future tests
-- Keep tests focused on observable behavior
+- One test at a time (the test-writer enforces this).
+- Only enough code to pass current test (the implementer enforces this).
+- Don't anticipate future tests.
+- Keep tests focused on observable behavior.
 
 ### 4. Refactor
 
@@ -94,9 +103,14 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 - [ ] Deepen modules (move complexity behind simple interfaces)
 - [ ] Apply SOLID principles where natural
 - [ ] Consider what new code reveals about existing code
-- [ ] Run tests after each refactor step
+
+Delegate the actual change to the `refactorer` agent — it runs the test suite between every step and reverts on red. Hand it one named refactor at a time ("extract X", "deepen Y"), not "make it nicer".
 
 **Never refactor while RED.** Get to GREEN first.
+
+### 5. Review (before commit)
+
+Once the slice is green and any refactors have landed, **delegate to the `reviewer` agent** before committing. It reads the diff plus the touched files and returns Ship / Revise / Block. Address must-fixes, reconsider should-fixes, then commit.
 
 ## Checklist Per Cycle
 

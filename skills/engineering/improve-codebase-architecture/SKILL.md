@@ -30,6 +30,16 @@ This skill is _informed_ by the project's domain model. The domain language give
 
 ## Process
 
+This skill orchestrates four delegated agents. The main thread holds the grilling conversation with the user; the agents do the legwork.
+
+| Phase | Agent | Model |
+|---|---|---|
+| Explore | `Explore` (built-in) | — |
+| Surface candidates / structural reasoning | `architect` | opus |
+| Apply chosen refactor | `refactorer` | sonnet |
+| Review (pre-commit) | `reviewer` | opus |
+| ADR / CONTEXT.md updates | `doc-writer` | haiku |
+
 ### 1. Explore
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
@@ -45,6 +55,8 @@ Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't
 Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
 
 ### 2. Present candidates
+
+For deeper structural reasoning on any area Explore surfaces — especially when the friction is non-obvious or the recommendation is contested — **delegate to the `architect` agent** (Agent tool, `subagent_type=architect`). Pass the area, the symptoms you observed, and any relevant ADRs. The architect returns ranked recommendations with cost/risk per option, including "do nothing" when premature deepening would cost more than it saves.
 
 Present a numbered list of deepening opportunities. For each candidate:
 
@@ -63,9 +75,17 @@ Do NOT propose interfaces yet. Ask the user: "Which of these would you like to e
 
 Once the user picks a candidate, drop into a grilling conversation. Walk the design tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
 
-Side effects happen inline as decisions crystallize:
+Side effects happen inline as decisions crystallize. Delegate the file writes themselves to `doc-writer` (haiku) — the main thread keeps the conversation moving, the doc-writer transcribes:
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/socratic-with-docs` (see [CONTEXT-FORMAT.md](../socratic-with-docs/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. See [ADR-FORMAT.md](../socratic-with-docs/ADR-FORMAT.md).
+- **Naming a deepened module after a concept not in `CONTEXT.md`?** Hand the term and definition to `doc-writer` to add to `CONTEXT.md` — same format as `/socratic-with-docs` (see [CONTEXT-FORMAT.md](../socratic-with-docs/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
+- **Sharpening a fuzzy term during the conversation?** Same — `doc-writer` updates `CONTEXT.md`.
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. On confirmation, hand the decision + reason to `doc-writer`. See [ADR-FORMAT.md](../socratic-with-docs/ADR-FORMAT.md).
 - **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
+
+### 4. Apply the refactor
+
+Once the design is settled, **delegate to the `refactorer` agent**. Pass one named change at a time ("deepen Order intake module", "extract X"), not "make it nicer". The refactorer runs the test suite between every step and reverts on red.
+
+### 5. Review
+
+Before commit, **delegate to the `reviewer` agent**. Architecture refactors touch many files — adversarial review catches what slipped.
