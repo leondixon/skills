@@ -9,6 +9,15 @@ A discipline for hard bugs. Skip phases only when explicitly justified.
 
 When exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 
+This skill orchestrates four delegated agents. The main thread builds the feedback loop and owns the conversation with the user; the agents handle hypothesising, instrumenting, fixing, and reviewing.
+
+| Phase | Agent | Model |
+|---|---|---|
+| Hypothesise (Phase 3) | `diagnostician` | opus |
+| Instrument (Phase 4) | `instrumentor` | sonnet |
+| Fix (Phase 5) | `implementer` | sonnet |
+| Review (pre-commit) | `reviewer` | opus |
+
 ## Phase 1 — Build a feedback loop
 
 **This is the skill.** Everything else is mechanical. If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause — bisection, hypothesis-testing, and instrumentation all just consume that signal. If you don't have one, no amount of staring at code will save you.
@@ -64,29 +73,19 @@ Do not proceed until you reproduce the bug.
 
 ## Phase 3 — Hypothesise
 
-Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.
+**Delegate to the `diagnostician` agent** (Agent tool, `subagent_type=diagnostician`). Pass the symptom, the feedback loop you built, anything already ruled out, and recent changes in the area. It returns 3–5 ranked, falsifiable hypotheses with the cheapest probe for each.
 
-Each hypothesis must be **falsifiable**: state the prediction it makes.
+**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly ("we just deployed a change to #3"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it — proceed with the diagnostician's ranking if the user is AFK.
 
-> Format: "If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse."
-
-If you cannot state the prediction, the hypothesis is a vibe — discard or sharpen it.
-
-**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly ("we just deployed a change to #3"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it — proceed with your ranking if the user is AFK.
+If the diagnostician returns fewer than 3 hypotheses or anchors on one, push back — single-hypothesis tunneling is the failure mode this phase exists to prevent.
 
 ## Phase 4 — Instrument
 
-Each probe must map to a specific prediction from Phase 3. **Change one variable at a time.**
+**Delegate each probe to the `instrumentor` agent**. Pass the hypothesis being tested, its falsifiable prediction, and the feedback loop. The instrumentor adds the cheapest probe that distinguishes it (debugger > targeted log > perf measurement), tags every log with `[DEBUG-xxxx]`, and runs the loop. It returns the observation and what it implies.
 
-Tool preference:
+**One hypothesis per pass.** If you ask the instrumentor to test two at once, you can't attribute the result.
 
-1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.
-2. **Targeted logs** at the boundaries that distinguish hypotheses.
-3. Never "log everything and grep".
-
-**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
-
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.
+**Perf branch.** For performance regressions, logs are usually wrong. Tell the instrumentor to measure (timing harness, `performance.now()`, profiler, query plan), establish a baseline, then bisect.
 
 ## Phase 5 — Fix + regression test
 
@@ -98,11 +97,11 @@ A correct seam is one where the test exercises the **real bug pattern** as it oc
 
 If a correct seam exists:
 
-1. Turn the minimised repro into a failing test at that seam.
+1. Turn the minimised repro into a failing test at that seam — delegate to `test-writer` if helpful.
 2. Watch it fail.
-3. Apply the fix.
-4. Watch it pass.
-5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+3. **Delegate the fix to the `implementer` agent**, passing the confirmed hypothesis and the failing test. It applies the minimum change and confirms green.
+4. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+5. **Delegate to `reviewer`** before committing. The fix needs adversarial scrutiny — bugs hide near other bugs.
 
 ## Phase 6 — Cleanup + post-mortem
 
@@ -110,7 +109,7 @@ Required before declaring done:
 
 - [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
 - [ ] Regression test passes (or absence of seam is documented)
-- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
+- [ ] All `[DEBUG-...]` instrumentation removed — ask the `instrumentor` agent to do the cleanup pass (single grep on its tag prefix)
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
 

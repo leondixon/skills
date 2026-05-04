@@ -9,6 +9,13 @@ Break a plan into independently-grabbable issues using vertical slices (tracer b
 
 The issue tracker and triage label vocabulary should have been provided to you — run `/setup-repo` if not.
 
+This skill orchestrates two delegated agents. The main thread runs the quiz with the user; the agents do decomposition and writing.
+
+| Phase | Agent | Model |
+|---|---|---|
+| Decompose into slices | `planner` | opus |
+| Render & post each issue | `doc-writer` | haiku |
+
 ## Process
 
 ### 1. Gather context
@@ -20,6 +27,8 @@ Work from whatever is already in the conversation context. If the user passes an
 If you have not already explored the codebase, do so to understand the current state of the code. Issue titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
 
 ### 3. Draft vertical slices
+
+**Delegate decomposition to the `planner` agent** (Agent tool, `subagent_type=planner`). Pass the source material, any constraints (ADRs, integration layers in this codebase), and the slice rules below. It returns ordered vertical slices with the next slice flagged.
 
 Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
@@ -51,7 +60,7 @@ Iterate until the user approves the breakdown.
 
 ### 5. Publish the issues to the issue tracker
 
-For each approved slice, publish a new issue to the issue tracker. Use the issue body template below. Apply the `needs-triage` triage label so each issue enters the normal triage flow.
+For each approved slice, **delegate rendering and posting to the `doc-writer` agent**, one slice per invocation. Pass the slice content, the issue body template below, and the `needs-triage` label requirement. The doc-writer matches the project's existing issue style and confirms with you before posting to any external tracker.
 
 Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
 

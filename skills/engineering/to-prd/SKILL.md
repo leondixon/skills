@@ -7,6 +7,8 @@ This skill takes the current conversation context and codebase understanding and
 
 The issue tracker and triage label vocabulary should have been provided to you — run `/setup-repo` if not.
 
+The main thread does the synthesis (what's the problem, what are the user stories, what are the implementation decisions) since that depends on the conversation context. **Delegate the final write to the `doc-writer` agent (haiku)** — pass the synthesised content and the template below, and it renders the PRD in the project's style and confirms with you before posting.
+
 ## Process
 
 1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.

@@ -14,11 +14,15 @@ After install, run `/setup-repo` once per repo to scaffold the per-project confi
 
 ## Local install
 
-If you've cloned this repo and want to symlink every skill straight into `~/.claude/skills/`:
+If you've cloned this repo and want to symlink every skill and agent straight into `~/.claude/`:
 
 ```bash
 ./scripts/link-skills.sh
 ```
+
+This links:
+- `skills/**/SKILL.md` → `~/.claude/skills/<name>`
+- `agents/*.md` → `~/.claude/agents/<name>.md`
 
 Re-run any time. Existing real directories at the target are replaced by the symlink — see the script for details.
 
@@ -41,3 +45,25 @@ Re-run any time. Existing real directories at the target are replaced by the sym
 - **[socratic](./skills/productivity/socratic/SKILL.md)** — Relentless interview about a plan or design until every branch is resolved (lean version; use `socratic-with-docs` when the project has a domain glossary).
 - **[caveman](./skills/productivity/caveman/SKILL.md)** — Ultra-compressed responses. Drops filler, keeps technical substance.
 - **[write-a-skill](./skills/productivity/write-a-skill/SKILL.md)** — Create new skills with proper structure, progressive disclosure, and bundled resources.
+
+## Agents
+
+The skills delegate phases to subagents in [`agents/`](./agents/), routed by model strength:
+
+### Opus 4.7 — reasoning, planning, review (read-only)
+
+- **[planner](./agents/planner.md)** — Decompose a task into ordered vertical slices with the next slice flagged. Used by `tdd`, `to-issues`, `improve-codebase-architecture`.
+- **[architect](./agents/architect.md)** — Structural reasoning, deepening opportunities, ADR-grade tradeoffs. Used by `improve-codebase-architecture`, `socratic-with-docs`.
+- **[diagnostician](./agents/diagnostician.md)** — 3–5 ranked, falsifiable bug hypotheses with cheapest probes. Used by `diagnose`.
+- **[reviewer](./agents/reviewer.md)** — Adversarial diff review → Ship / Revise / Block. Used by `tdd`, `diagnose`, `improve-codebase-architecture`.
+
+### Sonnet 4.6 — implementation (read-write)
+
+- **[test-writer](./agents/test-writer.md)** — One failing test for the next slice, exercising public interfaces only. Used by `tdd`.
+- **[implementer](./agents/implementer.md)** — Minimum code to turn red green, or apply a confirmed fix. Used by `tdd`, `diagnose`.
+- **[refactorer](./agents/refactorer.md)** — Behaviour-preserving structural changes with the test suite as safety harness. Used by `tdd`, `improve-codebase-architecture`.
+- **[instrumentor](./agents/instrumentor.md)** — Tagged `[DEBUG-xxxx]` probes / timing harnesses, one hypothesis at a time. Used by `diagnose`.
+
+### Haiku 4.5 — structured transcription
+
+- **[doc-writer](./agents/doc-writer.md)** — Render issues, PRDs, ADRs, CONTEXT.md updates in the project's style. Used by `to-issues`, `to-prd`, `improve-codebase-architecture`.
