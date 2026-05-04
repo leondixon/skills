@@ -1,0 +1,8 @@
+{
+  "name": "leondixon-skills",
+  "skills": [
+    "./skills/engineering/tdd",
+    "./skills/productivity/caveman",
+    "./skills/productivity/socratic"
+  ]
+}
