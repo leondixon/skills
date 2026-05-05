@@ -5,10 +5,12 @@ My personal collection of Claude Code skills. Adapted from [mattpocock/skills](h
 ## Quickstart
 
 ```bash
-npx skills@latest add leondixon/skills
+npx skills@latest add leondixon/skills -a claude-code -g
 ```
 
 Pick which skills (and which agents) to install. The CLI reads `.claude-plugin/plugin.json` and links the selected skills into your agent's skills directory.
+
+The `-a claude-code -g` flags target Claude Code's global layout (`~/.claude/`). Without them the CLI defaults to the tool-agnostic `~/.agents/` path. Drop `-g` for a project-level install (`./.claude/`).
 
 After install, run `/setup-repo` once per repo to scaffold the per-project config (issue tracker, triage labels, domain doc layout) that the engineering skills consume.
 
