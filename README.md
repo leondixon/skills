@@ -14,6 +14,8 @@ After install, run `/setup-repo` once per repo to scaffold the per-project confi
 
 ## Local install
 
+> **Claude Code only.** The script installs into `~/.claude/`, which is Claude Code's layout. Other tools (e.g. Cursor, Cline) are not supported — the script will prompt for confirmation and exit if you answer no.
+
 If you've cloned this repo and want to symlink every skill and agent straight into `~/.claude/`:
 
 ```bash
