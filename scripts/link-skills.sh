@@ -9,6 +9,18 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
+# --- Confirm target tool ---------------------------------------------------
+# These skills/agents install into ~/.claude/, which is Claude Code's layout.
+# Only Claude Code is supported; other tools have different on-disk conventions.
+read -r -p "Are you installing into Claude Code? [y/N] " reply
+case "$(printf '%s' "$reply" | tr '[:upper:]' '[:lower:]')" in
+  y|yes) ;;
+  *)
+    echo "error: only Claude Code is supported. Other installations are not supported at this time." >&2
+    exit 1
+    ;;
+esac
+
 link_into() {
   # link_into <dest_dir> <description>
   local dest="$1"
